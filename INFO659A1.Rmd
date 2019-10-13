@@ -4,6 +4,7 @@ author: "John Ray Martinez"
 date: "October 12, 2019"
 output: html_notebook
 ---
+<<<<<<< HEAD
 ```{r echo=FALSE}
 library('knitr')
 library('kableExtra')
@@ -13,6 +14,12 @@ library('corrplot')
 ### **Business Problem:**
 
 Credit card fraud remains a concern for retailers and consumers everywhere. It is a huge problem globally. To put into perspective, credit card fraud is twice as large as illegal arms trafficking. [Nilson Report](https://nilsonreport.com/upload/content_promo/The_Nilson_Report_10-17-2016.pdf) reported card fraud losses equaled \$24.71 billion in 2016, an increase of 13.14 percent over 2015. A study on EMV’s projected impact on financial fraud reports that credit card fraud losses may climb to as much as \$31.67 billion worldwideby 2020.
+=======
+
+### **Business Problem:**
+
+Credit card fraud remains a concern for retailers and consumers everywhere. It is a huge problem globally. To put into perspective, credit card fraud is twice as large as illegal arms trafficking. [Nilson Report](https://nilsonreport.com/upload/content_promo/The_Nilson_Report_10-17-2016.pdf) reported card fraud losses equaled $24.71 billion in 2016, an increase of 13.14 percent over 2015. A study on EMV’s projected impact on financial fraud reports that credit card fraud losses may climb to as much as $31.67 billion worldwideby 2020.
+>>>>>>> 0e996dfd0aab87c2430079864e02e2f9e7bdf356
   
 To combat credit card fraud, we can leverage data science for good while generating value at the same time. We can use machine learning in the form of supervised learning in R. This will help us predict which transactions are fraudulent and which ones are not. This algorithm needs a robust credit card fraud dataset to be trained on. 
   
@@ -92,7 +99,11 @@ hist(dataName$Amount[dataName$Amount < 5])
 ```
 By slicing the Amount < 5, we can only see 23.68% of the data. We want to see how long tail the data is with almost all the data so we need to increase the value for slicing. 
 
+<<<<<<< HEAD
 We could try Amount < 50, 100, and 300.
+=======
+We could try Amount < 50, 100, and 300
+>>>>>>> 0e996dfd0aab87c2430079864e02e2f9e7bdf356
 ```{r echo=FALSE}
 length(dataName$Amount[dataName$Amount < 50])/length(dataName$Amount) * 100
 ```
