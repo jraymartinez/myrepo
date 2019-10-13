@@ -86,7 +86,7 @@ hist(dataName$Amount[dataName$Amount < 5])
 ```
 By slicing the Amount < 5, we can only see 23.68% of the data. We want to see how long tail the data is with almost all the data so we need to increase the value for slicing. 
 
-We could try Amount < 50, 100, and 300
+We could try Amount < 50, 100, and 300.
 ```{r echo=FALSE}
 length(dataName$Amount[dataName$Amount < 50])/length(dataName$Amount) * 100
 ```
@@ -136,7 +136,7 @@ As you can see from the plot, principal components within principal components d
 
 The Kaggle data is of good quality and has enough number of observations, 284807. However, it is highly imbalanced as expected in this kind of dataset, credit card transactions. In order to improve the accuracy of the machine learning model, we have to restructure first the dataset to make it a balanced dataset. There is a lot of [methods or techniques](https://www.analyticsvidhya.com/blog/2016/03/practical-guide-deal-imbalanced-classification-problems/) to explore to do it like undersampling, oversampling, synthetic data generation, and cost sensitive learning.  
 
-Log transformation is not a good practice to use in histogram since it gives us a false perception of the density as frequency or count wherein we potentially could have zero value. In that case, density equals zero has no meaning.
+Log transformation is not a good practice to use in histogram since it gives us a false perception of the density as frequency or count. Another potential issue will be the impact of the transformation to the zero value of the original data since it can generate data that falls outside the bounds of the original data. What does it mean to have impossible values on the x-axis?
 
 Through multivariate analysis and correlation plot (corrplot), we learned that there is indeed correlation of principal components to fraudulence of credit card. We can also extend this study and explore, in particular, the correlation of princial components V1 - V17 individually to the target variable Class, and the correlation of principal components of V1 - V7 individually to the feature Amount.
 
