@@ -1,12 +1,12 @@
 ---
-title: "Credit Card Fraud Detection"
+title: "EDA with a Credit Card Fraud Detection dataset using CorrPlot"
 author: "John Ray Martinez"
 output: html_notebook
 ---
 
 ### **Business Problem:**
 
-Credit card fraud remains a concern for retailers and consumers everywhere. It is a huge problem globally. To put into perspective, credit card fraud is twice as large as illegal arms trafficking. [Nilson Report](https://nilsonreport.com/upload/content_promo/The_Nilson_Report_10-17-2016.pdf) reported card fraud losses equaled \$24.71 billion in 2016, an increase of 13.14 percent over 2015. A study on EMV’s projected impact on financial fraud reports that credit card fraud losses may climb to as much as \$31.67 billion worldwide by 2020.
+Credit card fraud remains a concern for retailers and consumers everywhere. It is a huge problem globally. To put it into perspective, credit card fraud is twice as large as illegal arms trafficking. [Nilson Report](https://nilsonreport.com/upload/content_promo/The_Nilson_Report_10-17-2016.pdf) reported card fraud losses equaled \$24.71 billion in 2016, an increase of 13.14 percent over 2015. A study on EMV’s projected impact on financial fraud reports that credit card fraud losses may climb to as much as \$31.67 billion worldwide by 2020.
   
 To combat credit card fraud, we can use data science to cut losses and generate business value. Machine learning can be used in the form of supervised learning to implement a model in R. This machine learning model will help us predict which transactions are fraudulent and which ones are not. Importantly, this algorithm needs a robust credit card fraud dataset to be trained on. 
   
@@ -73,7 +73,7 @@ The histogram for feature Amount does not make sense now. It only shows that a l
 
 Furthermore, we can produce another histogram for feature Amount based on logarithm, log10.
 ```{r}
-hist(log10(dataName$Amount), breaks=10, col="gray", xlab="Amount (log10)", main="Distribution of feature Amount (log10)") 
+hist(log10(dataName$Amount), breaks=10, col="gray", xlab="log10(Amount)", main="Distribution of feature log10(Amount)") 
 ```
 Using log10 to plot a histogram produces a curve as shown above. After the log transformation, the distribution appears to be normal. Remember that on the un-logged scale, the frequency or y-axis represents the count of each Amount value. However, in this log transformation, the logarithmic axis compresses the range in a non-linear way which causes this new plot to represent a density and not a count. Hence, the log scale is usually inappropriate for histograms.
 
@@ -82,7 +82,7 @@ In order to find out how long tail it is, we need to split the Amount data by in
 length(dataName$Amount[dataName$Amount < 5])/length(dataName$Amount) * 100
 ```
 ```{r}
-hist(dataName$Amount[dataName$Amount < 5])
+hist(dataName$Amount[dataName$Amount < 5], col="gray", xlab="Amount < 5", main="Distribution of feature Amount < 5")
 ```
 By slicing the Amount < 5, we can only see 23.68% of the data. We want to see how long tail the data is with almost all the data so we need to increase the value for slicing. 
 
@@ -91,19 +91,19 @@ We could try Amount < 50, 100, and 300.
 length(dataName$Amount[dataName$Amount < 50])/length(dataName$Amount) * 100
 ```
 ```{r echo=FALSE}
-hist(dataName$Amount[dataName$Amount < 50])
+hist(dataName$Amount[dataName$Amount < 50], col="gray", xlab="Amount < 50", main="Distribution of feature Amount < 50")
 ```
 ```{r echo=FALSE}
 length(dataName$Amount[dataName$Amount < 100])/length(dataName$Amount) * 100
 ```
 ```{r echo=FALSE}
-hist(dataName$Amount[dataName$Amount < 100])
+hist(dataName$Amount[dataName$Amount < 100], col="gray", xlab="Amount < 100", main="Distribution of feature Amount < 100")
 ```
 ```{r echo=False}
 length(dataName$Amount[dataName$Amount < 300])/length(dataName$Amount) * 100
 ```
 ```{r echo=FALSE}
-hist(dataName$Amount[dataName$Amount < 300], col="gray", xlab="Amount", main="Distribution of feature Amount") 
+hist(dataName$Amount[dataName$Amount < 300], col="gray", xlab="Amount < 300", main="Distribution of feature Amount < 300")
 ```
 Until this point that we cover 93% of the data, we begin to see long tail with the dataset. Also notice that if we keep on increasing the value for slice, the percentage is not increasing as much as it used to.
 
