@@ -1,0 +1,153 @@
+---
+title: "Credit Card Fraud Detection"
+author: "John Ray Martinez"
+date: "October 12, 2019"
+output: html_notebook
+---
+```{r echo=FALSE}
+library('knitr')
+library('kableExtra')
+library('corrplot')
+```
+
+### **Business Problem:**
+
+Credit card fraud remains a concern for retailers and consumers everywhere. It is a huge problem globally. To put into perspective, credit card fraud is twice as large as illegal arms trafficking. [Nilson Report](https://nilsonreport.com/upload/content_promo/The_Nilson_Report_10-17-2016.pdf) reported card fraud losses equaled \$24.71 billion in 2016, an increase of 13.14 percent over 2015. A study on EMV’s projected impact on financial fraud reports that credit card fraud losses may climb to as much as \$31.67 billion worldwideby 2020.
+  
+To combat credit card fraud, we can leverage data science for good while generating value at the same time. We can use machine learning in the form of supervised learning in R. This will help us predict which transactions are fraudulent and which ones are not. This algorithm needs a robust credit card fraud dataset to be trained on. 
+  
+For this assignment, we will do some initial exploratory data analysis (EDA) on the credit card fraud detection dataset from Kaggle. We will go through the three types of data analysis. The first one is univariate analysis which consists of identifying distribution of the features. The second is bi-variate analysis which involves looking at the correlations between variables. And the third is multivariate analysis which also involves correlation between more than two variables.
+
+### **Understand the Data:**
+
+The dataset is given in the CSV format and available for download at [Kaggle](https://www.kaggle.com/mlg-ulb/creditcardfraud). This has been collected and analyzed during a research collaboration of Worldline and the [Machine Learning Group](http://mlg.ulb.ac.be) of ULB (Université Libre de Bruxelles) on big data mining and fraud detection.
+  
+According to Kaggle site:
+*The dataset contains transactions made by credit cards in September 2013 by european cardholders. This dataset presents transactions that occurred in two days only where we have 492 frauds out of 284,807 transactions. This dataset is highly unbalanced, the positive class (fraud) account for only 0.172% of all transactions.*
+
+To validate that the fraud transactions are only 492, we can create a table on top of the variable Class and use package knitr's function kable and package kableExtra's function kable_styling for table formatting.
+
+```{r}
+kable(table(dataName$Class), col.names = c("Class", "Freq")) %>%
+  kable_styling(bootstrap_options = "striped", full_width = F, position = "left")
+```
+We can show that these values will become proportion by dividing these values by the length of the variable class. So we confirmed below that the fraudulent class is 0.172% of the dataset while the non-fraudulent is 99%.
+```{r}
+kable(table(dataName$Class)/length(dataName$Class) * 100, col.names = c("Class", "Percentage")) %>%
+  kable_styling(bootstrap_options = "striped", full_width = F, position = "left")
+```
+Since this non-fraudulent class outnumbers the fraudulent class and variable Class has only two values (0 and 1), this is an imbalanced binary classification.
+
+We can also show the internal structure of the dataset by using the function str.
+```{r echo=FALSE}
+str(dataName)
+```
+Notice that the dataset contains numerical input variables. These are all results of PCA or [Principal Component Analysis](https://en.wikipedia.org/wiki/Principal_component_analysis) transformations due to data confidentiality issues. Out of the 31 features, 28 have been anonymized and are labeled V1 through V28 so it will not contain any identifiable information of the users. The remaining three that are not transformed are the following features:
+
+* Time (datatype num) - contains the seconds elapsed between each transaction and the first transaction in the dataset
+* Amount (datatype num) - the transaction amount or the value of the transaction that was created
+* Class (datatype int) - the response variable and it takes value 1 in case of fraudulent transaction and 0 otherwise
+  
+As you can see, we can leverage supervised learning here since we have input variables and target variable Class. The algorithm will learn from this labeled dataset.
+
+### **Data in Action:**
+
+After loading the data into a variable, we can show the first 5 rows.
+```{r echo=FALSE}
+dataName <- read.table("C:/Users/john ray/Documents/INFO659/myrepo/creditcard.csv", header=TRUE, sep=",")
+```
+```{r}
+head(dataName, 5)
+```
+We can also show the basic statistical summary of features Class, Amount, and Time.
+```{r echo=FALSE}
+summary(dataName[c(1:5), c(1, 30, 31)])
+```
+To do distribution analysis of the three features Time, Amount, and Class, we will use histogram function.
+```{r}
+hist(dataName$Class, breaks=10, col="gray", xlab="Class", main="Distribution of feature Class") 
+```
+The distribution of feature Class above is highly imbalance! As discussed in previous section, the total number of value 0 (non-fraudulent) outnumbered the total number of value 1 (fraudulent). Fraudulent transactions account for 0.172% of the data which is basically negligible as can be illustrated (well it cannot be seen literally as expected) from the plot.
+
+It is very important to restructure imbalanced datasets since it reduces the accuracy of machine learning algorithm. There are a lot of methods to restructure imbalanced datasets to balanced datasets. However, we will not implement the methods to deal with imbalanced datasets in this assignment.
+
+The second feature that we can explore is Amount, and this will be extremely long tail since a lot of transactions in our dataset are containing low values. To validate, we can use hist function below.
+```{r}
+hist(dataName$Amount, breaks=10, col="gray", xlab="Amount", main="Distribution of feature Amount") 
+```
+The histogram for feature Amount does not make sense now. It only shows that a lot of transactions are around zero region however it does not clearly specify how long tail it is.
+
+Furthermore, we can produce another histogram for feature Amount based on logarithm, log10.
+```{r}
+hist(log10(dataName$Amount), breaks=10, col="gray", xlab="Amount (log10)", main="Distribution of feature Amount (log10)") 
+```
+Using log10 to plot a histogram produces a curve as shown above. After the log transformation, the distribution appears to be normal. Remember that on the un-logged scale, the frequency or y-axis represents the count of each Amount value. However, in this log transformation, the logarithmic axis compresses the range in a non-linear way which causes this new plot to represent a density and not a count. Hence, the log scale is usually inappropriate for histograms.
+
+In order to find out how long tail it is, we need to split the Amount data by initially slicing around zero region.
+```{r}
+length(dataName$Amount[dataName$Amount < 5])/length(dataName$Amount) * 100
+```
+```{r}
+hist(dataName$Amount[dataName$Amount < 5])
+```
+By slicing the Amount < 5, we can only see 23.68% of the data. We want to see how long tail the data is with almost all the data so we need to increase the value for slicing. 
+
+We could try Amount < 50, 100, and 300.
+```{r echo=FALSE}
+length(dataName$Amount[dataName$Amount < 50])/length(dataName$Amount) * 100
+```
+```{r echo=FALSE}
+hist(dataName$Amount[dataName$Amount < 50])
+```
+```{r echo=FALSE}
+length(dataName$Amount[dataName$Amount < 100])/length(dataName$Amount) * 100
+```
+
+```{r echo=FALSE}
+hist(dataName$Amount[dataName$Amount < 100])
+```
+```{r echo=False}
+length(dataName$Amount[dataName$Amount < 300])/length(dataName$Amount) * 100
+```
+```{r echo=FALSE}
+hist(dataName$Amount[dataName$Amount < 300], col="gray", xlab="Amount", main="Distribution of feature Amount") 
+```
+Until this point that we cover 93% of the data, we begin to see long tail with the dataset. Also notice that if we keep on increasing the value for slice, the percentage is not increasing as much as it used to.
+
+We can see from the histogram above that the bin size is 20. It means that the Amount values of 0-20 has the highest frequency of transactions which is somewhat 130000 transactions.
+
+We can also explore another feature variable, Time. Let's see the histogram of Time below.
+```{r}
+hist(dataName$Time, breaks=15, col="gray", xlab="Time", main="Distribution of feature Time") 
+```
+Remember that the feature Time is the the seconds elapsed between each transaction and the first transaction in the dataset. And the distribution does not clearly show us explicitly how the feature Time functions. This gives us an idea that Time and Amount are not linked to each other very well.
+
+To validate that idea, we can use bi-variate analysis using correlation function.
+```{r}
+cor(dataName$Time, dataName$Amount)
+```
+Notice that it has almost negligible correlation with negative sign. The negative sign only means that as the Time decreases, the Amount increases. However, the value is negligible enough. Hence, we can somehow conclude that there is no correlation between Time and Amount.
+
+Since this data is for classification problem, obviously, we cannot do any bi-variate analysis using Time or Amount as predictor variable and Class as the one to be predicted. The target variable Class is not continous and has values 0 and 1 as shown in the scatter plot below. Hence, we cannot conduct linear regression and add the regression line to the plot.
+```{r}
+plot(dataName$Amount, dataName$Class, xlab='Amount', ylab='Class') 
+```
+However, through multivariate analysis, we can show the correlation of principal components (V1-V28) and the target variable Class. Using cor function with the entire dataframe, cor(dataName), it will output a correlation matrix showing a pairwise correlation for each variable to each variable. With 31 variables at hand, it will be hard to comprehend those numbers. To make it more intuitive and able to visualize it, we can use the package and function corrplot.
+```{r}
+multiVarMatrix <- cor(dataName)
+corrplot(multiVarMatrix, method = "circle")
+```
+As you can see from the plot, principal components within principal components do not have strong correlations between them. However, these principal components have strong correlation with the Class variable as shown by circles. The larger the size of the circles, the stronger the correlation. The color of the circles represents the polarity of the correlation as shown in the legend bar at the right side.
+
+### **Discussion:**
+
+The Kaggle data is a good quality and has enough number of observations, 284807. However, it is highly imbalanced as expected in this kind of dataset, credit card transactions. In order to improve the accuracy of the machine learning model, we need to restructure first this data to make a balanced dataset. There is a lot of [methods or techniques](https://www.analyticsvidhya.com/blog/2016/03/practical-guide-deal-imbalanced-classification-problems/) to explore to do it like undersampling, oversampling, synthetic data generation, and cost sensitive learning.  
+
+Log transformation is not a good practice to use in histogram since it gives us a false perception of the density as frequency or count wherein we potentially could have zero value. In that case, density equals zero has no meaning.
+
+Through multivariate analysis and correlation plot (corrplot), we learned that there is indeed correlations of principal components to fraudulence of credit card. We can also extend this study and exlore, in particular, the correlation of princial components V1 - V17 individually to the target variable Class, and the correlation of principal components of V1 - V7 individually to the feature Amount.
+
+With this data, we can eliminate or at least reduce credit card fraudulence. We can help cut down the credit card fraud losses for the coming years. However, it is also important to have an effective model so it can identify fraud accurately in time when a criminal uses a stolen card to consume.
+
+We can use an effective machine learning model to be trained with these features of this dataset. We can have random forests as a model since it has relatively high preditive accuracy but has a slow training rate due to sophisticated algorithm. Since we are dealing with classification problem, logistic regression is also suitable for modeling. The advantage of logistic regression is fast training speed but it has a lower predictive accuracy compared to random forests algorithm.
+
