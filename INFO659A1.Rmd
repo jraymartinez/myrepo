@@ -1,5 +1,5 @@
 ---
-title: "EDA with a Credit Card Fraud Detection dataset using CorrPlot"
+title: "EDA with Credit Card Fraud Detection dataset using CorrPlot"
 author: "John Ray Martinez"
 output: html_notebook
 ---
