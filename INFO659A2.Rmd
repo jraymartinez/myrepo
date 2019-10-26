@@ -1,0 +1,416 @@
+---
+title: "Machine Learning models with Credit Card defaults dataset"
+author: "John Ray Martinez"
+output: html_notebook
+---
+
+### **Business Problem:**
+Banks play a significant role in providing financial service to people. Due to competition, they must be careful when investing in clients to avoid financial loss and maintain the integrity. Hence, they must come to about the potential of customers before giving credit to borrowers. 
+
+For credit card domain, the credit scoring is used to measure the probability of clients' default or failure to pay interest for principal on a loan or credit card payment. This credit scoring depends on some credit factors. Credit scoring models are usually constructed by logistic regression. For this assignment, I will determine and identify the credit factors using EDA (exploratory data analysis) and models Naive Bayes and Decision Tree. . 
+
+Overall, to reduce the risk of default and financial loss, the goal here is to find whether the clients are able to pay their next amount credit amount based on their demographics and payment history. 
+
+
+### **Date Source:**
+The data is given in the CSV format, available at [Default of Credit Card Clients.](https://www.kaggle.com/uciml/default-of-credit-card-clients-dataset)
+
+According to the site:
+*This dataset contains information on default payments, demographic factors, credit data, history of payment, and bill statements of credit card clients in Taiwan from April 2005 to September 2005.*
+
+### **Data Preparation:**
+
+```{r echo=FALSE}
+install.packages("rpart.plot")
+install.packages("ggplot2")
+install.packages("e1071")
+install.packages("kableExtra")
+```
+```{r echo=FALSE}
+library(kableExtra)
+```
+
+```{r echo=FALSE}
+kable(table(cc$default.payment.next.month), col.names = c("Default Payment", "Freq")) %>%
+  kable_styling(bootstrap_options = "striped", full_width = F, position = "left")
+```
+```{r echo=FALSE}
+kable(table(cc$default.payment.next.month)/length(cc$default.payment.next.month) * 100, col.names = c("Default Payment", "Percentage")) %>%
+  kable_styling(bootstrap_options = "striped", full_width = F, position = "left")
+```
+The first table shows the total number of records for defaulter and non defaulters. The default payment class is 22% of the dataset while the non-default payment is 78%. This variable default.payment.next.month is the target variable which refers to whether the client would do payment (Yes=1) or not (No=0) for next month. This is a binary classification problem.
+
+The internal structure of the dataset is shown below.
+```{r echo=FALSE}
+str(cc)
+```
+
+Here is the first 5 rows of the data.
+```{r}
+cc <- read.csv("C:/Users/john ray.000/Documents/INFO659/myrepo/UCI_Credit_Card.csv")
+cc$default.payment.next.month <- factor(cc$default.payment.next.month,levels=c(0,1), labels=c("No","Yes"))
+head(cc, 5)
+```
+### *Demographic Variables:*
+I explored the two variables SEX and EDUCATION numerically and visually to see if there's any correlation on payment default.
+
+Those EDUCATION = 0, 5, 6 are unknown based in the data documentation. With that, I grouped them together and included in the value 4 (= others). Below is the distributions for EDUCATION and SEX variableS. 
+
+```{r echo=FALSE}
+library(ggplot2)
+```
+```{r}
+cc$EDUCATION = ifelse(cc$EDUCATION == 0 |cc$EDUCATION == 5 | cc$EDUCATION == 6,
+       4, cc$EDUCATION)
+```
+
+```{r}
+ggplot(cc, aes(x=EDUCATION, fill=default.payment.next.month, color=default.payment.next.month)) + 
+  geom_histogram(binwidth=1, position="stack") +
+  ggtitle("Education") +
+  stat_count(aes(label = ..count..), geom = "label") +
+  scale_color_manual(values=c("black","black")) +
+  scale_fill_manual(values=c("#087830", "#7b1113"))
+```
+```{r}
+ggplot(cc, aes(x=SEX, fill=default.payment.next.month, color=default.payment.next.month)) + 
+  geom_histogram(binwidth=1, position="stack") +
+  ggtitle("Gender") +
+  stat_count(aes(label = ..count..), geom = "label") +
+  scale_color_manual(values=c("black","black")) +
+  scale_fill_manual(values=c("#087830", "#7b1113"))
+```
+For EDUCATION, generally, there are lower chances to default if clients have better education. Those with High School levels have higher chances to default. The fraction of clients who have High School (EDUCATION = 3) degrees and are default clients is 25%. Similarly, around 24% of clients who have University (EDUCATION = 2) degrees are defaults. I also found out that 19% of clients who have graduate degrees or are in graduate schools are defaulters. 
+
+For SEX, generally, male persons have more chances to default. As shown on the plot, the male credit card clients have a higher percentage of defaults compared to female ones. Around 24% of MALE clients are defaulters while 21% of FEMALE clients are default.
+
+
+### *Payment Status Variables:*
+I randomly picked and explored the variables PAY_0, PAY_2, PAY_3 numerically and visually to see if there's any correlation on payment default. According to data documentation, the possible values for these three variables are
+
+*-1=pay duly, 1=payment delay for one month, 2=payment delay for two months, … 8=payment delay for eight months, 9=payment delay for nine months and above.*
+
+* PAY_0 is the repayment status in September
+* PAY_2 is the repayment status in August
+* PAY_3 is the repayment status in July
+
+```{r}
+ggplot(cc, aes(x=PAY_0, fill=default.payment.next.month, color=default.payment.next.month)) + 
+  geom_histogram(binwidth=1, position="stack") +
+  ggtitle("PAY_0") +
+  stat_count(aes(label = ..count..), geom = "label") +
+  scale_color_manual(values=c("black","black")) +
+  scale_fill_manual(values=c("#087830", "#7b1113"))
+```
+```{r}
+ggplot(cc, aes(x=PAY_2, fill=default.payment.next.month, color=default.payment.next.month)) + 
+  geom_histogram(binwidth=1, position="stack") +
+  ggtitle("PAY_2") +
+  stat_count(aes(label = ..count..), geom = "label") +
+  scale_color_manual(values=c("black","black")) +
+  scale_fill_manual(values=c("#087830", "#7b1113"))
+```
+```{r}
+ggplot(cc, aes(x=PAY_3, fill=default.payment.next.month, color=default.payment.next.month)) + 
+  geom_histogram(binwidth=1, position="stack") +
+  ggtitle("PAY_3") +
+  stat_count(aes(label = ..count..), geom = "label") +
+  scale_color_manual(values=c("black","black")) +
+  scale_fill_manual(values=c("#087830", "#7b1113"))
+```
+Notice, by inspecting the plots, that there are undocumented values such as -2 and 0 for repayment status variables.
+
+I focused on looking at the values 2 (payment delay for two months) from these three predictors. The common trend for the three plots above is that the percentage of credit card defaults rose at this point where payment is delayed for two months. The chances of default goes higher when payment is delayed more than 2 months. For instance, for variable PAY_0, the percentage of defaulters are 33%, 69%, 75%, 68%, 50%, 55%, 78%, 58% for delay for 1...8 months respectively while those who pay on time has small chance of 17% to default. It is clear that credit card clients paying their bills with some delay have a higher percentage of defaults compared to clients paying on time.
+
+I also confirmed the strong correlation of PAYMENT STATUS variables with DEFAULT variable through correlation plot below. The plot shows the positive correlation of PAY_0, PAY_1 - PAY_6 to DEFAULT variable.
+
+*I converted column label default.payment.next.month to DEFAULT for plot aesthetic purposes.*
+```{r}
+colnames(cc)[colnames((cc)) == "default.payment.next.month"] = "DEFAULT"
+```
+```{r echo=FALSE}
+library(corrplot)
+```
+
+```{r}
+defaultMatrix <- cor(cc[c(2,3,4,5,6,7,8,9,10,11,12, 25)])
+corrplot(defaultMatrix, method = "number", tl.cex = 0.75, number.cex=0.65, col=c("white", "black"), bg="lightblue", tl.srt=45)
+#corrplot(defaultMatrix, method = "number", tl.cex = 0.75, number.cex=0.65, #tl.col="black", tl.srt=45, col=brewer.pal(n=8, name="RdYlBu"))
+```
+
+### *Transforming Nominal Variables:*
+I decided to transform the 3 demographic variables (SEX, EDUCATION, MARRIAGE) into nominal values with labels according to data documentation.
+
+```{r}
+cc$SEX <- factor(cc$SEX,levels=c(1,2), labels=c("Male", "Female")) 
+```
+```{r echo=FALSE}
+head(cc, 5)
+```
+```{r}
+cc$EDUCATION <- factor(cc$EDUCATION,levels=c(1,2,3,4), labels=c("graduate school", "university", "high school", "others")) 
+```
+```{r echo=FALSE}
+head(cc, 10)
+```
+I checked the unique value for variable MARRIAGE and found out value = 0 which is not included in the data documentation. With that, I will merge the value = 0 to value 3 (others). 
+```{r}
+unique(cc$MARRIAGE)
+```
+```{r}
+cc$MARRIAGE = ifelse(cc$MARRIAGE == 3, 0, cc$MARRIAGE)
+cc$MARRIAGE <- factor(cc$MARRIAGE,levels=c(1,2,3), labels=c("married","single","others"))
+```
+```{r echo=FALSE}
+head(cc, 10)
+```
+
+Furthermore, I transformed the PAYMENT STATUS variables (PAY_1, PAY_2 - PAY_6) into the nominal variables. I fixed what appears to be a typo in the column label from PAY_0 to PAY_1 to be consistent with BILL_AMT_1 and PAY_AMT1.
+```{r}
+colnames(cc)[colnames((cc)) == "PAY_0"] = "PAY_1"
+```
+According to data documentation, the possible values for PAYMENT status are:
+
+*(-1=pay duly, 1=payment delay for one month, 2=payment delay for two months, ... 8=payment delay for eight months, 9=payment delay for nine months and above)*
+
+However, upon inspection of the data, there exists -2 and 0. In addition, the range of values for these fields in the data is -2 to 8, hence there is no value 9. With that, I decided to transform these variables according to these mappings below, 
+```{r}
+cc$PAY_1  <- factor(cc$PAY_1, levels=c(-2,-1,0,1,2,3,4,5,6,7,8), labels=c("No consumption of credit card", "Pay duly", "Pay minimum only", "Delay for 1 month", "Delay for 2 months", "Delay for 3 months", "Delay for 4 months",  "Delay for 5 months", "Delay for 6 months", "Delay for 7 months",  "Delay for 8 months"))
+cc$PAY_2  <- factor(cc$PAY_2, levels=c(-2,-1,0,1,2,3,4,5,6,7,8), labels=c("No consumption of credit card", "Pay duly", "Pay minimum only", "Delay for 1 month", "Delay for 2 months", "Delay for 3 months", "Delay for 4 months",  "Delay for 5 months", "Delay for 6 months", "Delay for 7 months",  "Delay for 8 months"))
+cc$PAY_3  <- factor(cc$PAY_3, levels=c(-2,-1,0,1,2,3,4,5,6,7,8), labels=c("No consumption of credit card", "Pay duly", "Pay minimum only", "Delay for 1 month", "Delay for 2 months", "Delay for 3 months", "Delay for 4 months",  "Delay for 5 months", "Delay for 6 months", "Delay for 7 months",  "Delay for 8 months"))
+cc$PAY_4  <- factor(cc$PAY_4, levels=c(-2,-1,0,1,2,3,4,5,6,7,8), labels=c("No consumption of credit card", "Pay duly", "Pay minimum only", "Delay for 1 month", "Delay for 2 months", "Delay for 3 months", "Delay for 4 months",  "Delay for 5 months", "Delay for 6 months", "Delay for 7 months",  "Delay for 8 months"))
+cc$PAY_5  <- factor(cc$PAY_5, levels=c(-2,-1,0,1,2,3,4,5,6,7,8), labels=c("No consumption of credit card", "Pay duly", "Pay minimum only", "Delay for 1 month", "Delay for 2 months", "Delay for 3 months", "Delay for 4 months",  "Delay for 5 months", "Delay for 6 months", "Delay for 7 months",  "Delay for 8 months"))
+cc$PAY_6  <- factor(cc$PAY_6, levels=c(-2,-1,0,1,2,3,4,5,6,7,8), labels=c("No consumption of credit card", "Pay duly", "Pay minimum only", "Delay for 1 month", "Delay for 2 months", "Delay for 3 months", "Delay for 4 months",  "Delay for 5 months", "Delay for 6 months", "Delay for 7 months",  "Delay for 8 months"))
+```
+```{r echo=FALSE}
+head(cc, 10)
+```
+
+### *Selection of Training Data:*
+Naive Bayes computes the conditional probabilites of categorical class variable (DEFAULT) given 'independent' predictor variables (SEX, EDUCATION, MARRIAGE).
+```{r}
+unique(cc$DEFAULT)
+```
+I need to drop ID column since it's unnecessary for the modeling.
+```{r}
+cc <- cc[ -c(1) ]
+head(cc, 5)
+```
+
+
+I selected 5000 random rows as training data.
+```{r}
+train <- cc[sample(nrow(cc), 5000), ] 
+```
+```{r}
+nrow(train)
+```
+```{r}
+head(train, 5)
+```
+
+### *Selection of Testing Data:*
+I randomnly picked these two rows below as test data. 
+```{r}
+test <- cc[c(6955,29095),]
+test
+```
+
+### **Data Classification:**
+### *Naive Bayes using Demographic Variables:*
+
+```{r echo=FALSE}
+library(e1071)
+```
+```{r}
+nbDem <- naiveBayes(DEFAULT ~ SEX + EDUCATION + MARRIAGE, train)
+```
+
+```{r}
+nbDem
+```
+Looking at the generated probabilites of the model, it is clear that the sum of the probabilities horizontally will give 1 as expected since the total of all probabilities should be 1. For instance, the sum of probabilities of male (0.45) and female (0.55) to be defaulters is 1. Similarly, the the sum of probabilities of married (0.47) and single (0.53) to be defaulters is 1.
+
+```{r}
+predict(nbDem, test[1,])
+```
+```{r}
+predict(nbDem, test[2,])
+```
+The predictions are correct for both test records. It can be seen that the SEX value is female for both test records which has the highest conditional probabilities of 61% among the predictors to be non-defaulter. 
+
+Naive Bayes assumes predictors are conditionally independent, that is SEX, EDUCATION, and MARRIAGE are independent of one another which does not hold true in the real world. Remember, I trained the Naive Bayes using real world dataset. That assumption would be the disadvantage of Naive bayes which could be potential cause of errors in prediction. 
+
+### *Naive Bayes using Payment Status:*
+```{r}
+nbPay <- naiveBayes(DEFAULT ~ PAY_1 + PAY_2 + PAY_3, train)
+```
+
+```{r}
+nbPay
+```
+For Payment Status predictors, the sum of the generated conditional probabilites of the model is 1 expectedly since the total of all probabilities should be 1. For PAY_1 or the repayment status in September (2005), for instance, the sum of the conditional probabilities of the following status to be defaulters is 1.
+
+0.0514184397 (No consumption of credit card)
+0.1445035461 (Pay duly)    
+0.2739361702 (Pay minimum only)
+0.1773049645 (Delay for 1 month)      
+0.2952127660 (Delay for 2 month)       
+0.0381205674 (Delay for 3 month) 
+0.0106382979 (Delay for 4 month)        
+0.0008865248 (Delay for 5 month)        
+0.0026595745 (Delay for 6 month) 
+0.0026595745 (Delay for 7 month) 
+0.0026595745 (Delay for 8 month)
+
+____________
+1.0000000000
+```{r}
+predict(nbPay, test[1,])
+```
+
+```{r}
+predict(nbPay, test[2,])
+```
+The predictions are correct for both test records using PAYMENT STATUS as predictors. For chosen test record 1, the value for PAY_1, PAY_2, PAY_3 is 'No consumption of credit card'. In conditinal probability table above, I can confirm that the prediction of the model that the particular client to be non-defaulter for test record 1 is correct numerically.  
+
+  DEFAULT=NO                                       
+  PAY_1: 0.1058884298     PAY_2: 0.1371384298     PAY_3: 0.1528925620
+  
+  DEFAULT=Yes                  
+  PAY_1: 0.0514184397     PAY_2: 0.0895390071     PAY_3: 0.0975177305
+  
+In the case of test record 2, the value for PAY_1 is 'Pay duly' while for PAY_2 and PAY_3 it is 'Pay minimum only'. In conditional probability table below for test record 2, I can confirm that the prediction of the model that the particular client to be non-defaulter for test record 2 is correct numerically.
+
+  DEFAULT=NO                                       
+  PAY_1: 0.1942148760     PAY_2: 0.5596590909     PAY_3: 0.5490702479
+  
+  DEFAULT=Yes                  
+  PAY_1: 0.1445035461     PAY_2: 0.3758865248     PAY_3: 0.4086879433
+  
+### *Smoothed Naive Bayes using Payment Status*
+```{r}
+nbPay <- naiveBayes(DEFAULT ~ PAY_1 + PAY_2 + PAY_3, train, laplace=1)
+```
+```{r}
+nbPay
+```
+Notice that from (non-laplace) Naive Bayes model from previous section, there are generated zero probabilities. Those categories (PAY_3/Delay for 1 month, PAY_3/Delay for 8 months, etc) are not observed in training dateset. Hence the model assigned 'zero' probabilities. However, 'zero' probabilities do not make sense especially if the model is operating on unseen data. 
+
+To avoid zero probabilities for those unobserved data, smoothing techniques are used. One of the techniques is called Laplace. The generated conditional probabilities for smoothed Naive Bayes model with laplace = 1 are shown above. It is clear that the laplace smoothing has effect on 'zero' probabilities as all the conditional probabilities are now non-zero.
+
+Similarly, the sum of the generated conditional probabilites of the laplace model is 1 expectedly since the total of all probabilities should be 1. For PAY_1 or the repayment status in September (2005), for instance, the sum of the new conditional probabilities of the following status to be defaulters is still 1.
+
+0.0517998244 (No consumption of credit card)
+0.1439859526 (Pay duly)     
+0.2721685689 (Pay minimum only)
+0.1764705882 (Delay for 1 month)      
+0.2932396839 (Delay for 2 month) 
+0.0386303775 (Delay for 3 month) 
+0.0114135206 (Delay for 4 month)      
+0.0017559263 (Delay for 5 month)        
+0.0035118525 (Delay for 6 month) 
+0.0035118525 (Delay for 7 month)        
+0.0035118525 (Delay for 8 month) 
+
+____________
+1.0000000000
+```{r}
+predict(nbPay, test[1,])
+```
+```{r}
+predict(nbPay, test[2,])
+```
+The predictions for Naive Bayes with laplace are correct for both test records. For chosen test record 1, the value for PAY_1, PAY_2, PAY_3 is 'No consumption of credit card'. In conditional probability table above, I can confirm that the prediction of the model that the particular client to be non-defaulter for test record 1 is correct numerically.  
+
+  DEFAULT=NO                                       
+  PAY_1: 0.1058884298     PAY_2: 0.1371384298     PAY_3: 0.1528925620
+  
+  DEFAULT=Yes                  
+  PAY_1: 0.0514184397     PAY_2: 0.0895390071     PAY_3: 0.0975177305
+  
+In the case of test record 2, the value for PAY_1 is 'Pay duly' while for PAY_2 and PAY_3 it is 'Pay minimum only'. In conditional probability table below for test record 2, we can confirm that the prediction of the model that the particular client to be non-defaulter for test record 2 is correct numerically.  
+
+  DEFAULT=NO                                       
+  PAY_1: 0.1942148760     PAY_2: 0.5596590909     PAY_3: 0.5490702479
+  
+  DEFAULT=Yes                  
+  PAY_1: 0.1445035461     PAY_2: 0.3758865248     PAY_3: 0.4086879433
+
+### **Data Classification:**
+### *Basic Decision Tree:*
+```{r echo=False}
+library("rpart")
+library("rpart.plot")
+```
+
+
+```{r}
+dtPay <- rpart(DEFAULT ~ PAY_1 + PAY_2 + PAY_3,
+            method="class",
+            data=train, parms=list(split='information'), 
+            minsplit=20, cp=0.02)
+```
+```{r}
+rpart.plot(dtPay, type=4, extra=1)
+```
+As you can see in the plot above, the data is split into 5 nodes and 3 terminal nodes. Notice also that it performs feature selection as it only put the predictor PAY_1 on its tree and neglect the last 2 variables. In addition, it confirmed our analysis during EDA part earlier that when payment is delayed for more than 1 month, the chance of default goes higher than 50%, as shown in the 'yes' (green node) path from the plot.
+
+
+```{r}
+test <- cc[c(6955,29095),]
+```
+
+```{r}
+predict(dtPay, test[1,])
+```
+```{r}
+predict(dtPay, test[2,])
+```
+For the test records '6955' and '29095', the PAY_1 variable has values -2 and -1 respectively. From the decision tree above, it has a chance of 14% (1 - 3329/3861) to be classified as defaulter. Similarly, since test record no 2 has PAY_1 of -1 which is still < 1, it has 14% to be defaulter.
+
+### *Decision Tree with a Different Complexity Parameter:*
+```{r}
+dtPay <- rpart(DEFAULT ~ PAY_1 + PAY_2 + PAY_3,
+            method="class",
+            data=train, parms=list(split='information'), 
+            minsplit=20, cp=0.001)
+```
+
+```{r}
+rpart.plot(dtPay, type=4, extra=1)
+```
+The complexity parameter is used to control the size of the decision tree and to select the optimal tree size. So changing the complexity parameter of the decision tree from 0.02 to 0.001 is a nice step to use the optimal tree size. Notice that it includes now the predictors PAY_2 and PAY_3 to the tree. From 5 nodes with 3 terminal nodes, the decision trees grow into 17 nodes with 9 terminal nodes.
+
+```{r}
+predict(dtPay, test[1,])
+```
+```{r}
+predict(dtPay, test[2,])
+```
+Based on the generated decision tree above for complexity parameter 0.001, the chance to be classified as defaulter is still 14% (1 - 3344/3895) for both test records since I am still using the same test records and the generated decision tree has the same particular branch path that occured when complexity parameter is 0.02.
+
+To see the optimal value of complexity parameter, I used the printcp function and plotcp below. In this case, it is confirmed that the cp = 0.001 is the optimal value of complexity parameter as it has the lowest relative error (rel error) and cross validation error (xerror) below.
+
+```{r}
+printcp(dtPay)
+```
+```{r}
+plotcp(dtPay)
+```
+### **Conclusion:**
+
+Naive Bayes is a good machine learning algorithm as it has fast speed of training. For this case, it worked well for demographic predictors of SEX, EDUCATION, MARRIAGE. It also predicts accurately using PAYMENT STATUS predictors. Furthermore, the effect of laplace smoothing were clearly seen as all the conditional probabilities are nonzeroes after setting laplace=1. Non-laplace Naive Bayes model will assign a zero probability to those unseen categories in training dataset. This is where laplace smoothing comes in to be used as fail safe probability and makes the model predict a nonzero probability even the category has not been seen by the model before. Change in generated conditional probabilities between the non-laplace and laplace model is evident if PAYMENT STATUS predictors are transformed to nominal variables. This suggests that Naive Bayes performs well in case of categorical input variable compared to numerical variables. Moreover, for further studies, training set of around 18000 records should be used to comply with the general rule of 60:40 ratio of training:testing records and makes sure to do nominal transformation for all PAYMENT STATUS predictors if Naive Bayes will be used as a model.
+
+Decision Tree is simple to understand and visualize. The model predicts accurately for both cases, cp = 0.02 and 0.001. The advantage is that the classifier generated is easily interpretable compared to Naive Bayes classifier. And it can handle both discrete and continuous inputs, hence it can be used either in classification or regression problem type.
+
+Based on the correlation plot that I created in EDA phase, the predictor LIMIT_BAL (Amount of given credit in NT dollars) has negative correlation of 0.15 to DEFAULT variable. This predictor can be considered for future research to see whether there is indeed a relationship of having a small LIMIT_BAL will lead to default accounts.
+
+From the insight I gain from EDA and classification using Naive Bayes and Decision Tree models, I may propose to the risk management department the following to reduce the risk of default.
+
+* More cautious on payment behavoiur of the clients
+* More cautious on high school level clients
+* More cautious on Male over Female
+
+### **References:**
+[1] UCI Machine Learning, Default of Credit Card Clients Dataset (2005), Kaggle 
