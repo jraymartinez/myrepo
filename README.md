@@ -2,7 +2,7 @@
 
 This repo contains the following two tasks:
 1. EDA for Credit Card Fraud Detection
-2.
+2. Machine Learning Modeling
 
 These studies were implemented in fulfillment of the requirements for the Data Analytics Course of Master of Science in Data Science (Fall Term 19-20) under Drexel University College of Computing & Informatics. 
 
