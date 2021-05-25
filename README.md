@@ -1,5 +1,12 @@
-## **Project Title**
-The dataset can be downloaded from [Kaggle](https://www.kaggle.com/mlg-ulb/creditcardfraud). This is an exploratory data analysis (EDA) task for Credit Card Fraud Detection dataset. This is one of the four assignments for my course INFO659 Introduction to Data Analyticas. 
+## **Credit Card Fraud Prediction**
+
+This repo contains the following two tasks:
+1. EDA for Credit Card Fraud Detection
+2.
+
+These studies were implemented in fulfillment of the requirements for the Data Analytics Course of Master of Science in Data Science (Fall Term 19-20) under Drexel University College of Computing & Informatics. 
+
+To combat credit card fraud, machine learning can be used in the form of supervised learning to implement a model in R. This machine learning model will help us predict which transactions are fraudulent and which ones are not. 
 
 ## **Getting Started**
 ### *Prerequisites*
